@@ -1,0 +1,25 @@
+# 构建产物
+build/
+*.jar
+*.zip
+
+# 本地 JDK（可选）
+jdk*/
+
+# 测试临时文件
+test/samples/
+test/tmp/
+test/out/
+test/run/
+test/cli/
+
+# Python
+__pycache__/
+*.pyc
+
+# 编辑器
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
