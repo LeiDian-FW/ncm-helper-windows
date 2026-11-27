@@ -87,7 +87,7 @@ python run_tests.py          REM 自测
 
 构建产物：
 
-- `build/NCM-Helper-Windows-1.1.0.zip` — 便携版（含精简 Java 运行时，解压即用）
+- `build/NCM-Helper-Windows-1.1.1.zip` — 便携版（含精简 Java 运行时，解压即用）
 - `build/app/NCM Helper/` — 未压缩的应用目录
 - `build/dist/ncm-helper.jar` — 纯 jar（可配合任意 JDK 17+ 运行）
 

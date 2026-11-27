@@ -258,7 +258,7 @@ public final class Pipeline {
                         ncm++;
                         newFiles.add(dest);
                         fireRecord(record("成功", dest.title(), dest.artist(), dest.path(),
-                                dest.path().getFileName().toString(), ""));
+                                null, ""));
                         Log.info("转换完成: " + f.getFileName() + " -> " + library.relativize(dest.path()));
                     }
                 } catch (Throwable e) {
@@ -276,7 +276,7 @@ public final class Pipeline {
                             moved++;
                             newFiles.add(dest);
                             fireRecord(record("成功", f.getFileName().toString(), "", dest.path(),
-                                    dest.path().getFileName().toString(), "归档已有音频"));
+                                    null, "归档已有音频"));
                             Log.info("归档: " + f.getFileName() + " -> " + library.relativize(dest.path()));
                         } else {
                             skipped++;
