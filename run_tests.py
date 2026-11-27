@@ -47,10 +47,10 @@ def find_tool(name):
     return found
 
 
-def run(cmd, expect=0):
+def run(cmd, expect=0, env=None):
     print("$", " ".join(cmd))
     r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
-                       errors="replace", env=ENV)
+                       errors="replace", env=env or ENV)
     out = (r.stdout or "") + (r.stderr or "")
     print(out)
     if r.returncode != expect:
@@ -85,6 +85,8 @@ def main():
 
     run([java] + HOST_JVM + ["-cp", CLASSES + os.pathsep + TEST_OUT, "TestCore", ncm, flac])
     run([java] + HOST_JVM + ["-cp", CLASSES + os.pathsep + TEST_OUT, "TestPipeline", WORK, ncm])
+    run([java] + HOST_JVM + ["-cp", CLASSES + os.pathsep + TEST_OUT, "TestHistory",
+         os.path.join(TEST_DIR, "history")])
 
     # 打包后的 jar CLI 端到端
     shutil.rmtree(CLI_DIR, ignore_errors=True)
@@ -93,7 +95,10 @@ def main():
     os.makedirs(src)
     os.makedirs(lib)
     shutil.copy2(ncm, os.path.join(src, "sample.ncm"))
-    out = run([java, "-jar", JAR, "--cli", "--source", src, "--library", lib, "--no-lyrics"])
+    cli_env = dict(ENV)
+    cli_env["APPDATA"] = os.path.join(CLI_DIR, "appdata")
+    out = run([java, "-jar", JAR, "--cli", "--source", src, "--library", lib, "--no-lyrics"],
+              env=cli_env)
     if "converted=1" not in out or "failed=0" not in out:
         raise SystemExit("CLI 端到端结果异常")
     converted = [os.path.join(dp, f) for dp, dn, fn in os.walk(lib) for f in fn if f.endswith(".flac")]

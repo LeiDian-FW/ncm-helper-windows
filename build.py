@@ -19,7 +19,7 @@ except Exception:
 import zipfile
 
 APP_NAME = "NCM Helper"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 MIN_JDK = 17
 MAIN_CLASS = "io.github.spwncm.ncmdesktop.App"
 

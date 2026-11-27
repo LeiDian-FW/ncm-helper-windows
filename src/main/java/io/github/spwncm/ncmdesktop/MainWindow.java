@@ -17,17 +17,21 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.table.DefaultTableModel;
 
 /** 主窗口。 */
 public final class MainWindow extends JFrame {
@@ -44,10 +48,12 @@ public final class MainWindow extends JFrame {
     private final JButton detectBtn = new JButton("自动识别");
     private final JButton runBtn = new JButton("立即处理一次");
     private final JButton watchBtn = new JButton("开始监视");
+    private final JButton historyBtn = new JButton("转换记录");
     private final JTextArea logArea = new JTextArea();
     private final JLabel status = new JLabel("就绪");
 
     private Pipeline pipeline;
+    private History history;
     private boolean oneShotBusy;
     private boolean watching;
 
@@ -55,6 +61,7 @@ public final class MainWindow extends JFrame {
         super("NCM 助手 · Windows 版 v" + App.VERSION);
         Settings s = Settings.load();
         applySettings(s);
+        history = new History(Settings.dataDir(), s.historyDays);
 
         Log.setSink(line -> SwingUtilities.invokeLater(() -> appendLog(line)));
         Log.init(Settings.dataDir().resolve("ncm-helper.log"));
@@ -152,6 +159,8 @@ public final class MainWindow extends JFrame {
         actions.add(runBtn);
         actions.add(Box.createHorizontalStrut(10));
         actions.add(watchBtn);
+        actions.add(Box.createHorizontalStrut(10));
+        actions.add(historyBtn);
         actions.add(Box.createHorizontalStrut(16));
         actions.add(new JLabel("提示：转换结果按 歌手/专辑 归档；源 NCM 校验通过后才会删除"));
         actions.add(Box.createHorizontalGlue());
@@ -176,6 +185,7 @@ public final class MainWindow extends JFrame {
         detectBtn.addActionListener(e -> autoDetectAsync());
         runBtn.addActionListener(e -> runOnce());
         watchBtn.addActionListener(e -> toggleWatch());
+        historyBtn.addActionListener(e -> showHistoryDialog());
     }
 
     private static JButton button(String text, java.awt.event.ActionListener l) {
@@ -271,6 +281,11 @@ public final class MainWindow extends JFrame {
             }
 
             @Override
+            public void onRecord(History.Record record) {
+                if (history != null) history.add(record);
+            }
+
+            @Override
             public void finished() {
                 SwingUtilities.invokeLater(() -> {
                     if (!watchMode) {
@@ -340,6 +355,81 @@ public final class MainWindow extends JFrame {
         status.setText("就绪");
     }
 
+    private void showHistoryDialog() {
+        JDialog dlg = new JDialog(this, "转换记录", true);
+        DefaultTableModel model = new DefaultTableModel(
+                new Object[]{"时间", "状态", "歌曲", "歌手", "目标文件"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        JTable table = new JTable(model);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+        table.getColumnModel().getColumn(0).setPreferredWidth(140);
+        table.getColumnModel().getColumn(1).setPreferredWidth(46);
+        table.getColumnModel().getColumn(2).setPreferredWidth(180);
+        table.getColumnModel().getColumn(3).setPreferredWidth(130);
+        table.getColumnModel().getColumn(4).setPreferredWidth(430);
+        JScrollPane scroll = new JScrollPane(table);
+
+        JLabel info = new JLabel();
+        Runnable refresh = () -> {
+            model.setRowCount(0);
+            for (History.Record r : history.recent(500)) {
+                model.addRow(new Object[]{r.timeText(), r.status, r.title, r.artist, r.dest});
+            }
+            info.setText("共 " + history.count() + " 条（最多显示最近 500 条）");
+        };
+        refresh.run();
+
+        JSpinner daysSpinner = new JSpinner(
+                new SpinnerNumberModel(history.retainDays(), 1, 3650, 1));
+        daysSpinner.addChangeListener(e -> {
+            int days = (Integer) daysSpinner.getValue();
+            Settings st = collectSettings();
+            st.historyDays = days;
+            st.save();
+            history.setRetainDays(days);
+            refresh.run();
+        });
+        JPanel top = new JPanel();
+        top.add(new JLabel("保留最近"));
+        top.add(daysSpinner);
+        top.add(new JLabel("天，超期记录自动删除"));
+
+        JButton refreshBtn = new JButton("刷新");
+        refreshBtn.addActionListener(e -> refresh.run());
+        JButton clearBtn = new JButton("清空记录");
+        clearBtn.addActionListener(e -> {
+            if (JOptionPane.showConfirmDialog(dlg, "确定清空全部转换记录？", "确认",
+                    JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+                history.clear();
+                refresh.run();
+            }
+        });
+        JButton closeBtn = new JButton("关闭");
+        closeBtn.addActionListener(e -> dlg.dispose());
+
+        JPanel buttons = new JPanel();
+        buttons.add(refreshBtn);
+        buttons.add(clearBtn);
+        buttons.add(closeBtn);
+
+        JPanel content = new JPanel(new BorderLayout(0, 8));
+        content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        content.add(top, BorderLayout.NORTH);
+        content.add(scroll, BorderLayout.CENTER);
+        JPanel south = new JPanel(new BorderLayout());
+        south.add(info, BorderLayout.WEST);
+        south.add(buttons, BorderLayout.EAST);
+        content.add(south, BorderLayout.SOUTH);
+        dlg.setContentPane(content);
+        dlg.setSize(1040, 540);
+        dlg.setLocationRelativeTo(this);
+        dlg.setVisible(true);
+    }
+
     private void appendLog(String line) {
         SwingUtilities.invokeLater(() -> {
             logArea.append(line + System.lineSeparator());
@@ -351,6 +441,7 @@ public final class MainWindow extends JFrame {
         try {
             if (pipeline != null) pipeline.stop();
             collectSettings().save();
+            if (history != null) history.purge();
         } catch (Exception ignored) {
         }
         dispose();

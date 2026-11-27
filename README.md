@@ -15,6 +15,7 @@
 | 自动归档 | 按 `歌手/专辑/歌手 - 歌名.ext` 写入音乐库，非法字符自动清洗 |
 | 内嵌封面 | 写入 FLAC `PICTURE` 元数据块；已有封面不覆盖 |
 | 在线补歌词 | 按歌名/歌手匹配网易云歌词（含翻译），保存 `.lrc` |
+| **转换记录** | 保存最近的成功/跳过/失败记录（时间、歌曲、目标文件），按保留天数**自动过期清理** |
 | 自动监视 | 定期扫描下载目录，可配置间隔；也可随时"立即处理一次" |
 | 命令行模式 | `NCM Helper.exe --cli --source <目录> --library <目录>`，便于脚本化 |
 | 零依赖 | 纯 Java（仅 JDK 标准库），自带精简运行时，解压即用 |
@@ -32,6 +33,7 @@
 2. 解压到任意目录（无需安装），双击 `NCM Helper.exe`
 3. 首次启动会自动识别网易云下载目录；确认"音乐库"路径（默认 `D:\music`）
 4. 点击 **立即处理一次**，或勾选 **自动监视** 后点 **开始监视**
+5. 点 **转换记录** 可查看最近的转换结果，并调整记录保留天数
 
 > 软件不需要管理员权限；配置与日志保存在 `%APPDATA%\NCMHelper`。
 
@@ -61,6 +63,7 @@ RESULT converted=1 moved=0 skipped=0 failed=0
 ```
 %APPDATA%\NCMHelper\
 ├── config.json        # 界面配置
+├── history.jsonl      # 转换记录（超期自动清理，默认保留 30 天）
 ├── ncm-helper.log     # 运行日志
 └── lyrics-cache\      # 歌词缓存
 ```
@@ -70,7 +73,7 @@ RESULT converted=1 moved=0 skipped=0 failed=0
 - Windows 11 实测：图形界面、监视模式、命令行模式均正常
 - 转换结果与源音频**逐字节一致**；FLAC 封面写入后音频帧不变
 - 10MB NCM 转换 < 1 秒；连续运行无内存问题
-- `python run_tests.py`：核心解密、归档流水线、打包后 CLI 端到端全部通过
+- `python run_tests.py`：核心解密、归档流水线、转换记录、打包后 CLI 端到端全部通过
 
 ## 构建
 
@@ -84,7 +87,7 @@ python run_tests.py          REM 自测
 
 构建产物：
 
-- `build/NCM-Helper-Windows-1.0.0.zip` — 便携版（含精简 Java 运行时，解压即用）
+- `build/NCM-Helper-Windows-1.1.0.zip` — 便携版（含精简 Java 运行时，解压即用）
 - `build/app/NCM Helper/` — 未压缩的应用目录
 - `build/dist/ncm-helper.jar` — 纯 jar（可配合任意 JDK 17+ 运行）
 

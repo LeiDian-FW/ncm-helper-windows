@@ -41,11 +41,17 @@ public final class Cli {
         if (s.library.isBlank()) s.library = "D:\\music";
 
         Log.init(Settings.dataDir().resolve("ncm-helper.log"));
+        final History history = new History(Settings.dataDir(), s.historyDays);
         final int[] st = new int[4];
         Pipeline pipeline = new Pipeline(Settings.dataDir(),
                 new NeteaseLyrics(Settings.dataDir().resolve("lyrics-cache")));
         pipeline.setOptions(lyrics, true);
         pipeline.setListener(new Pipeline.Listener() {
+            @Override
+            public void onRecord(History.Record record) {
+                history.add(record);
+            }
+
             @Override
             public void stats(int converted, int moved, int skipped, int failed) {
                 st[0] = converted;
@@ -65,8 +71,10 @@ public final class Cli {
             Log.error("处理失败: " + e);
             return 2;
         }
+        history.purge();
         System.out.printf("RESULT converted=%d moved=%d skipped=%d failed=%d%n",
                 st[0], st[1], st[2], st[3]);
+        System.out.println("记录已保存: " + Settings.dataDir().resolve("history.jsonl"));
         return st[3] > 0 ? 1 : 0;
     }
 }

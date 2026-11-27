@@ -6,7 +6,7 @@ import javax.swing.UIManager;
 /** 程序入口：默认启动图形界面；--cli 走命令行模式。 */
 public final class App {
 
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.1.0";
 
     private App() {
     }

@@ -21,6 +21,7 @@ public final class Settings {
     public boolean fetchLyrics = true;
     public boolean lyricsOnline = true;
     public boolean writeLrc = true;
+    public int historyDays = 30;
 
     public static Path dataDir() {
         String appData = System.getenv("APPDATA");
@@ -51,6 +52,7 @@ public final class Settings {
             s.fetchLyrics = bool(m, "fetchLyrics", s.fetchLyrics);
             s.lyricsOnline = bool(m, "lyricsOnline", s.lyricsOnline);
             s.writeLrc = bool(m, "writeLrc", s.writeLrc);
+            s.historyDays = (int) Json.lng(m, "historyDays", s.historyDays);
         } catch (Exception ignored) {
         }
         return s;
@@ -66,6 +68,7 @@ public final class Settings {
         m.put("fetchLyrics", fetchLyrics);
         m.put("lyricsOnline", lyricsOnline);
         m.put("writeLrc", writeLrc);
+        m.put("historyDays", historyDays);
         StringBuilder sb = new StringBuilder("{\n");
         int i = 0;
         for (Map.Entry<String, Object> e : m.entrySet()) {

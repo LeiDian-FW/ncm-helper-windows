@@ -36,6 +36,9 @@ public final class Pipeline {
 
         default void finished() {
         }
+
+        default void onRecord(History.Record record) {
+        }
     }
 
 
@@ -120,6 +123,39 @@ public final class Pipeline {
             } catch (Throwable ignored) {
             }
         }
+    }
+
+    private void fireRecord(History.Record r) {
+        Listener l = listener;
+        if (l != null) {
+            try {
+                l.onRecord(r);
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    private static History.Record record(String status, String title, String artist,
+                                         Path dest, String format, String message) {
+        long size = 0L;
+        if (dest != null) {
+            try {
+                size = Files.size(dest);
+            } catch (IOException ignored) {
+            }
+        }
+        String ext = format;
+        if (ext == null || ext.isEmpty()) {
+            if (dest != null) {
+                String name = dest.getFileName().toString();
+                int dot = name.lastIndexOf('.');
+                ext = dot > 0 ? name.substring(dot + 1) : "";
+            } else {
+                ext = "";
+            }
+        }
+        return new History.Record(System.currentTimeMillis(), status, title, artist,
+                dest == null ? "" : dest.toString(), ext, size, message);
     }
 
     /** 应用新配置：若正在监视则按新配置重启 */
@@ -216,13 +252,19 @@ public final class Pipeline {
                     NewFile dest = processNcm(f, library);
                     if (dest == null) {
                         skipped++;
+                        fireRecord(record("跳过", f.getFileName().toString(), "", null, "",
+                                "音乐库已存在相同音频"));
                     } else {
                         ncm++;
                         newFiles.add(dest);
+                        fireRecord(record("成功", dest.title(), dest.artist(), dest.path(),
+                                dest.path().getFileName().toString(), ""));
                         Log.info("转换完成: " + f.getFileName() + " -> " + library.relativize(dest.path()));
                     }
                 } catch (Throwable e) {
                     failed++;
+                    fireRecord(record("失败", f.getFileName().toString(), "", null, "",
+                            String.valueOf(e)));
                     Log.error("转换失败（源文件已保留）: " + f.getFileName() + " -> " + e);
                 }
             }
@@ -233,12 +275,18 @@ public final class Pipeline {
                         if (dest != null) {
                             moved++;
                             newFiles.add(dest);
+                            fireRecord(record("成功", f.getFileName().toString(), "", dest.path(),
+                                    dest.path().getFileName().toString(), "归档已有音频"));
                             Log.info("归档: " + f.getFileName() + " -> " + library.relativize(dest.path()));
                         } else {
                             skipped++;
+                            fireRecord(record("跳过", f.getFileName().toString(), "", null, "",
+                                    "音乐库已存在相同文件"));
                         }
                     } catch (Throwable e) {
                         failed++;
+                        fireRecord(record("失败", f.getFileName().toString(), "", null, "",
+                                String.valueOf(e)));
                         Log.error("归档失败: " + f.getFileName() + " -> " + e);
                     }
                 }
